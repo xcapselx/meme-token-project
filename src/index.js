@@ -1,5 +1,5 @@
 const express = require('express');
-const { ApiPromise, WsProvider } = require('@polkadot/api');
+const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
 const { cryptoWaitReady } = require('@polkadot/util-crypto');
 
 const app = express();
@@ -37,14 +37,38 @@ app.get('/latest-block', async (req, res) => {
               <p>Extrinsics Root: ${signedBlock.block.header.extrinsicsRoot}</p>`);
 });
 
-app.get('/create-token', async (req, res) => {
+app.get('/balance/:address', async (req, res) => {
+    const { address } = req.params;
     const api = await getApi();
 
-    // Assuming you have a method to create tokens. Replace with actual implementation.
-    const createTokenExtrinsic = api.tx.token.createToken('Meme Token', 'MTK', 1000000);
+    try {
+        const { data: balance } = await api.query.system.account(address);
+        res.send(`<h1>Balance for ${address}</h1>
+                  <p>Free Balance: ${balance.free}</p>
+                  <p>Reserved Balance: ${balance.reserved}</p>
+                  <p>Misc Frozen: ${balance.miscFrozen}</p>
+                  <p>Fee Frozen: ${balance.feeFrozen}</p>`);
+    } catch (error) {
+        res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`);
+    }
+});
 
-    // Sign and send the transaction here
-    res.send('<h1>Token Creation Initiated</h1>');
+app.post('/transfer', async (req, res) => {
+    const { senderSeed, recipient, amount } = req.body;
+    const api = await getApi();
+
+    try {
+        const keyring = new Keyring({ type: 'sr25519' });
+        const sender = keyring.addFromUri(senderSeed);
+
+        const transfer = api.tx.balances.transfer(recipient, amount);
+        const hash = await transfer.signAndSend(sender);
+
+        res.send(`<h1>Transfer Successful</h1>
+                  <p>Transaction Hash: ${hash}</p>`);
+    } catch (error) {
+        res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`);
+    }
 });
 
 app.listen(port, () => {

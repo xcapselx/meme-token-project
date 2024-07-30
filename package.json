@@ -12,6 +12,7 @@
     "@polkadot/api": "^12.2.3",
     "@polkadot/keyring": "^13.0.2",
     "@polkadot/util-crypto": "^13.0.2",
+    "body-parser": "^1.20.2",
     "express": "^4.19.2"
   },
   "description": ""
