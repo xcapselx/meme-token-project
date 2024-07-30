@@ -1,11 +1,9 @@
 const express = require('express');
-const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
+const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { cryptoWaitReady } = require('@polkadot/util-crypto');
 
 const app = express();
-const port = 5001; // Ensure it's the correct port
-
-app.use(express.json()); // Middleware to parse JSON bodies
+const port = 5001;
 
 async function getApi() {
     await cryptoWaitReady();
@@ -14,58 +12,39 @@ async function getApi() {
 }
 
 app.get('/', async (req, res) => {
-    try {
-        const api = await getApi();
-        const chain = await api.rpc.system.chain();
-        const lastHeader = await api.rpc.chain.getHeader();
-        res.send(`<h1>Polkadot Meme Token Project</h1>
-                  <p>Connected to chain: ${chain}</p>
-                  <p>Last block number: ${lastHeader.number}</p>`);
-    } catch (error) {
-        res.send(`<h1>Error</h1><p>${error.message}</p>`);
-    }
+    const api = await getApi();
+
+    const chain = await api.rpc.system.chain();
+    const lastHeader = await api.rpc.chain.getHeader();
+
+    res.send(`<h1>Polkadot Meme Token Project</h1>
+              <p>Connected to chain: ${chain}</p>
+              <p>Last block number: ${lastHeader.number}</p>`);
+});
+
+app.get('/latest-block', async (req, res) => {
+    const api = await getApi();
+
+    const lastHeader = await api.rpc.chain.getHeader();
+    const blockHash = await api.rpc.chain.getBlockHash(lastHeader.number);
+    const signedBlock = await api.rpc.chain.getBlock(blockHash);
+
+    res.send(`<h1>Latest Block Information</h1>
+              <p>Block Number: ${lastHeader.number}</p>
+              <p>Block Hash: ${blockHash}</p>
+              <p>Parent Hash: ${signedBlock.block.header.parentHash}</p>
+              <p>State Root: ${signedBlock.block.header.stateRoot}</p>
+              <p>Extrinsics Root: ${signedBlock.block.header.extrinsicsRoot}</p>`);
 });
 
 app.get('/create-token', async (req, res) => {
-    try {
-        const api = await getApi();
-        const keyring = new Keyring({ type: 'sr25519' });
-        const alice = keyring.addFromUri('//Alice');
+    const api = await getApi();
 
-        // Dummy extrinsic call (since we don't have a real pallet, this is a placeholder)
-        const dummyExtrinsic = api.tx.balances.transfer('5FHneW46xGXgs5mUiveU4sbTyGBzmto3k3mXUwwAYeGpK2nE', 12345);
+    // Assuming you have a method to create tokens. Replace with actual implementation.
+    const createTokenExtrinsic = api.tx.token.createToken('Meme Token', 'MTK', 1000000);
 
-        const hash = await dummyExtrinsic.signAndSend(alice);
-        res.send(`<h1>Token Created</h1><p>Transaction Hash: ${hash}</p>`);
-    } catch (error) {
-        res.send(`<h1>Error Creating Token</h1><p>${error.message}</p>`);
-    }
-});
-
-app.post('/transfer', async (req, res) => {
-    const { fromUri, toAddress, amount } = req.body;
-    try {
-        const api = await getApi();
-        const keyring = new Keyring({ type: 'sr25519' });
-        const from = keyring.addFromUri(fromUri);
-
-        const transferExtrinsic = api.tx.balances.transfer(toAddress, amount);
-        const hash = await transferExtrinsic.signAndSend(from);
-        res.send(`<h1>Transfer Successful</h1><p>Transaction Hash: ${hash}</p>`);
-    } catch (error) {
-        res.send(`<h1>Error Transferring Tokens</h1><p>${error.message}</p>`);
-    }
-});
-
-app.get('/balance/:address', async (req, res) => {
-    const { address } = req.params;
-    try {
-        const api = await getApi();
-        const { data: balance } = await api.query.system.account(address);
-        res.send(`<h1>Balance</h1><p>Address: ${address}</p><p>Balance: ${balance.free}</p>`);
-    } catch (error) {
-        res.send(`<h1>Error Fetching Balance</h1><p>${error.message}</p>`);
-    }
+    // Sign and send the transaction here
+    res.send('<h1>Token Creation Initiated</h1>');
 });
 
 app.listen(port, () => {
