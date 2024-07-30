@@ -4,7 +4,11 @@ const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
 const { cryptoWaitReady } = require('@polkadot/util-crypto');
 
 const app = express();
+<<<<<<< HEAD
 const port = 5001;
+=======
+const port = 5002; // Changed to 5002 to avoid conflict
+>>>>>>> f0d01ff (Add Gitpod configuration and other updates)
 
 app.use(bodyParser.json());
 
