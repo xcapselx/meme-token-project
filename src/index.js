@@ -1,9 +1,12 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
 const { cryptoWaitReady } = require('@polkadot/util-crypto');
 
 const app = express();
 const port = 5001;
+
+app.use(bodyParser.json());
 
 async function getApi() {
     await cryptoWaitReady();
@@ -65,6 +68,27 @@ app.post('/transfer', async (req, res) => {
         const hash = await transfer.signAndSend(sender);
 
         res.send(`<h1>Transfer Successful</h1>
+                  <p>Transaction Hash: ${hash}</p>`);
+    } catch (error) {
+        res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`);
+    }
+});
+
+app.post('/create-token', async (req, res) => {
+    const { senderSeed, tokenName, tokenSymbol, initialSupply } = req.body;
+    const api = await getApi();
+
+    try {
+        const keyring = new Keyring({ type: 'sr25519' });
+        const sender = keyring.addFromUri(senderSeed);
+
+        const createTokenExtrinsic = api.tx.balances.createToken(tokenName, tokenSymbol, initialSupply);
+        const hash = await createTokenExtrinsic.signAndSend(sender);
+
+        res.send(`<h1>Token Creation Successful</h1>
+                  <p>Token Name: ${tokenName}</p>
+                  <p>Token Symbol: ${tokenSymbol}</p>
+                  <p>Initial Supply: ${initialSupply}</p>
                   <p>Transaction Hash: ${hash}</p>`);
     } catch (error) {
         res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`);
